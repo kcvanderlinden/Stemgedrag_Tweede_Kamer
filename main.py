@@ -9,7 +9,8 @@ import PyPDF2
 import os
 
 # Start up script to create an initial empty database with headings
-cols = ['Subject', 'Date', 'Names_Supporters', 'char_supporters', 'Parties', 'Vote', 'Text', 'Title', 'Document_Number', 'State_Document']
+cols = ['Subject', 'Date', 'Names_Supporters', 'char_supporters', 'Parties', 'Vote', 'Text', 'Title', 'Document_Number',
+        'State_Document', 'Personal_Info_Page']
 database = pd.DataFrame(columns=cols)
 database.to_csv('Database.csv', index=False)
 
@@ -39,22 +40,22 @@ def ind_page(sub_url, database):
                 vote_list.append([party_name.replace('\n', ''), count_vote, choice])
 
     # Catching information of the motion and of the persons who drew or supported the motion
-    inf = loaded_page.find('h2')
-    gen_info = loaded_page.find('div', class_="col-md-3").find_all('div', class_="link-list__text")
-    date = gen_info[0].text
-    doc_number = gen_info[1].text
-    state_doc = gen_info[2].text
+    supporter_info_0 = loaded_page.find('h2')
+    general_info = loaded_page.find('div', class_="col-md-3").find_all('div', class_="link-list__text")
+    date = general_info[0].text
+    doc_number = general_info[1].text
+    state_doc = general_info[2].text
     subject = loaded_page.find('h1', class_='section__title').text
     subject = re.sub(' +', ' ', subject.replace('\n', ''))
     page_title = loaded_page.title.text
-    char_supporters = []
-    name_supporters = []
-    party_supporters = []
-    while inf.next_sibling.next_sibling is not None:
-        inf = inf.next_sibling.next_sibling
-        char_supporters.append(inf.select('div > strong')[0].text)
-        name_supporters.append(inf.select('div > a')[0].text)
-        party_supporters.append(inf.select('div > a')[1].text)
+    char_supporters, name_supporters, party_supporters, personal_pages = [], [], [], []
+    while supporter_info_0.next_sibling.next_sibling is not None:
+        supporter_info_0 = supporter_info_0.next_sibling.next_sibling
+        char_supporters.append(supporter_info_0.select('div > strong')[0].text)
+        supporter_info_1 = supporter_info_0.select('div > a')
+        name_supporters.append(supporter_info_1[0].text)
+        personal_pages.append('https://www.tweedekamer.nl' + supporter_info_1[0]['href'])
+        party_supporters.append(supporter_info_1[1].text)
 
     # Reading the motion from the PDF. PDF is temporarily downloaded and only the text of the motion is scraped
     sub_url_pdf = loaded_page('a', class_='button ___rounded ___download')[0]['href']
@@ -74,7 +75,7 @@ def ind_page(sub_url, database):
     database = database.append(
         {"Subject": subject, 'Date': date, 'Names_Supporters': name_supporters, 'char_supporters': char_supporters,
          'Parties': party_supporters, 'Vote': vote_list, 'Text': motion_text, 'Title': page_title,
-         'Document_Number': doc_number, 'State_Document': state_doc}, ignore_index=True)
+         'Document_Number': doc_number, 'State_Document': state_doc, 'Personal_Info_Page': personal_pages}, ignore_index=True)
     return database
 
 # By defining the range (which will eventually account for every list page), the scraping can begin.
