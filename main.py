@@ -2,7 +2,7 @@
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd
-import csv
+# import csv
 import re
 import wget
 import PyPDF2
@@ -17,23 +17,26 @@ database.to_csv('Database.csv', index=False)
 # This is initially where the pages are being loaded.
 def ind_page(sub_url, database):
     url = 'https://www.tweedekamer.nl' + sub_url
-    #url = 'https://www.tweedekamer.nl/kamerstukken/moties/detail?id=2021Z0221j4&did=2021D04897'
+    # url = 'https://www.tweedekamer.nl/kamerstukken/moties/detail?id=2021Z0221j4&did=2021D04897'
     rall = requests.get(url)
     r = rall.content
     loaded_page = BeautifulSoup(r, "lxml")
 
     # Catching the Vote (if the vote has been casted)
-    if loaded_page.find('h2', class_='section__title') == None:
+    if loaded_page.find('table', class_='vote-result-table') is None:
         vote_list = 'De stemming is niet bekend.'
     else:
+        tables = loaded_page.find_all('table', class_='vote-result-table')
         vote_list = []
-        for strong_tag in loaded_page.find_all('tr'):
-            party = strong_tag.span
-            if party == None:
-                voted_what = strong_tag.th.text
-            else:
-                vote_count = strong_tag.select('td > span')[1].text
-                vote_list.append([party.text, int(vote_count), voted_what])
+        for table in tables:
+            choice = table.th.text
+            parties = table.find_all('tr')
+            for party in parties[1::]:
+                party_name = party.select('td')[0].text
+                count_vote = 0
+                if len(party.select('td')) > 1:
+                    count_vote = int(party.select('td > span')[1].text)
+                vote_list.append([party_name.replace('\n', ''), count_vote, choice])
 
     # Catching information of the motion and of the persons who drew or supported the motion
     inf = loaded_page.find('h2')
@@ -47,17 +50,13 @@ def ind_page(sub_url, database):
     char_supporters = []
     name_supporters = []
     party_supporters = []
-    while inf.next_sibling.next_sibling != None:
+    while inf.next_sibling.next_sibling is not None:
         inf = inf.next_sibling.next_sibling
         char_supporters.append(inf.select('div > strong')[0].text)
         name_supporters.append(inf.select('div > a')[0].text)
         party_supporters.append(inf.select('div > a')[1].text)
-    #for i in range(0, cnt_ondertekenaars):
-    #    print(subject)
-    #    char_supporters.append(inf[i].select('div > strong')[0].text)
-    #    name_supporters.append(inf[i].select('div > a')[0].text)
-    #    party_supporters.append(inf[i].select('div > a')[1].text)
 
+    # Reading the motion from the PDF. PDF is temporarily downloaded and only the text of the motion is scraped
     sub_url_pdf = loaded_page('a', class_='button ___rounded ___download')[0]['href']
     if sub_url_pdf[-3::] == 'pdf':
         pdf_url = 'https://www.tweedekamer.nl/' + sub_url_pdf
@@ -72,18 +71,16 @@ def ind_page(sub_url, database):
     else:
         motion_text = 'Het document is geen PDF-formaat'
 
-    # database = pd.read_csv('Database.csv')
     database = database.append(
         {"Subject": subject, 'Date': date, 'Names_Supporters': name_supporters, 'char_supporters': char_supporters,
          'Parties': party_supporters, 'Vote': vote_list, 'Text': motion_text, 'Title': page_title,
          'Document_Number': doc_number, 'State_Document': state_doc}, ignore_index=True)
-    # database.to_csv('Database.csv', index=False)
     return database
 
 # By defining the range (which will eventually account for every list page), the scraping can begin.
 def run():
     database = pd.read_csv('Database.csv')
-    for i in range(1,3):
+    for i in range(1,7):
         print('This is page {}'.format(i))
         url = 'https://www.tweedekamer.nl/kamerstukken/moties?qry=*&fld_prl_kamerstuk=Moties&fld_tk_categorie=kamerstukken&srt=date%3Adesc%3Adate&page='+str(i)
         rall = requests.get(url)
