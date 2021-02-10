@@ -9,14 +9,13 @@ import PyPDF2
 import os
 
 # Start up script to create an initial empty database with headings
-cols = ['Subject', 'Date', 'Names_Supporters', 'char_supporters', 'Parties', 'Vote', 'Text', 'Title',
-        'Document_Number', 'State_Document']
+cols = ['Subject', 'Date', 'Names_Supporters', 'char_supporters', 'Parties', 'Vote', 'Text', 'Title', 'Document_Number', 'State_Document']
 database = pd.DataFrame(columns=cols)
 database.to_csv('Database.csv', index=False)
 
 
 # This is initially where the pages are being loaded.
-def ind_page(sub_url):
+def ind_page(sub_url, database):
     url = 'https://www.tweedekamer.nl' + sub_url
     #url = 'https://www.tweedekamer.nl/kamerstukken/moties/detail?id=2021Z0221j4&did=2021D04897'
     rall = requests.get(url)
@@ -73,21 +72,25 @@ def ind_page(sub_url):
     else:
         motion_text = 'Het document is geen PDF-formaat'
 
-    database = pd.read_csv('Database.csv')
+    # database = pd.read_csv('Database.csv')
     database = database.append(
         {"Subject": subject, 'Date': date, 'Names_Supporters': name_supporters, 'char_supporters': char_supporters,
          'Parties': party_supporters, 'Vote': vote_list, 'Text': motion_text, 'Title': page_title,
          'Document_Number': doc_number, 'State_Document': state_doc}, ignore_index=True)
-    database.to_csv('Database.csv', index=False)
+    # database.to_csv('Database.csv', index=False)
+    return database
 
 # By defining the range (which will eventually account for every list page), the scraping can begin.
 def run():
-    for i in range(4,7):
+    database = pd.read_csv('Database.csv')
+    for i in range(1,3):
+        print('This is page {}'.format(i))
         url = 'https://www.tweedekamer.nl/kamerstukken/moties?qry=*&fld_prl_kamerstuk=Moties&fld_tk_categorie=kamerstukken&srt=date%3Adesc%3Adate&page='+str(i)
         rall = requests.get(url)
         r = rall.content
         soup = BeautifulSoup(r,"lxml")
         for x in soup.select('h3 > a'):
             sub_url = x['href']
-            ind_page(sub_url)
-    return 'ready steady'
+            database = ind_page(sub_url, database)
+    database.to_csv('Database.csv', index=False)
+    return print('\n ready steady')
