@@ -1,5 +1,6 @@
-requests==2.25.0
-pandas==1.0.3
+requests==2.25.1
+pandas==1.2.5
 wget==3.2
 PyPDF2==1.26.0
 beautifulsoup4==4.9.3
+tqdm==4.61.1

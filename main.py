@@ -2,33 +2,58 @@
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd
-# import csv
 import re
 import wget
 import PyPDF2
 import os
+from tqdm import tqdm
 
-# Start up script to create an initial empty database with headings
-cols = ['Subject', 'Date', 'Names_Supporters', 'char_supporters', 'Parties', 'Vote', 'Text', 'Title', 'Document_Number',
-        'State_Document', 'Personal_Info_Page']
-database = pd.DataFrame(columns=cols)
-database.to_csv('Database.csv', index=False)
+# if not existent, create empty tables
+def create_tables():
+    cols = ['motie_id', 'Subject', 'Date', 'Text', 'Title', 'State_Document']
+    motie_table = pd.DataFrame(columns=cols)
+    motie_table.to_csv('motie_table.csv', index=False)
 
+    cols = ['motie_id', 'name_submitter', 'submitter_type', 'party_submitter', 'personal_page']
+    indieners_table = pd.DataFrame(columns=cols)
+    indieners_table.to_csv('indieners_table.csv', index=False)
+
+    cols = ['motie_id', 'party_name', 'vote_count', 'vote']
+    vote_table = pd.DataFrame(columns=cols)
+    vote_table.to_csv('vote_table.csv', index=False)
+    return motie_table, indieners_table, vote_table
 
 # This is initially where the pages are being loaded.
-def ind_page(sub_url, database):
+def ind_page(sub_url, motie_table, indieners_table, vote_table):
     url = 'https://www.tweedekamer.nl' + sub_url
-    # url = 'https://www.tweedekamer.nl/kamerstukken/moties/detail?id=2021Z0221j4&did=2021D04897'
     rall = requests.get(url)
     r = rall.content
     loaded_page = BeautifulSoup(r, "lxml")
+
+    # Catching information of the motion and of the persons who drew or supported the motion
+    supporter_info_0 = loaded_page.find('h2')
+    general_info = loaded_page.find('div', class_="col-md-3").find_all('div', class_="link-list__text")
+    date = general_info[0].text
+    doc_number = general_info[1].text
+    if doc_number in motie_table.motie_id.values:
+        None
+        return motie_table, indieners_table, vote_table
+    state_doc = general_info[2].text
+    subject = loaded_page.find('h1', class_='section__title').text
+    subject = re.sub(' +', ' ', subject.replace('\n', ''))
+    page_title = loaded_page.title.text
+    while supporter_info_0.next_sibling.next_sibling is not None:
+        supporter_info_0 = supporter_info_0.next_sibling.next_sibling
+        supporter_info_1 = supporter_info_0.select('div > a')
+        indieners_table = indieners_table.append(
+            {'motie_id': doc_number, 'name_submitter': supporter_info_1[0].text, 'submitter_type': supporter_info_0.select('div > strong')[0].text, 'party_submitter': supporter_info_1[1].text, 'personal_page': 'https://www.tweedekamer.nl' + supporter_info_1[0]['href']},
+            ignore_index=True)
 
     # Catching the Vote (if the vote has been casted)
     if loaded_page.find('table', class_='vote-result-table') is None:
         vote_list = 'De stemming is niet bekend.'
     else:
         tables = loaded_page.find_all('table', class_='vote-result-table')
-        vote_list = []
         for table in tables:
             choice = table.th.text
             parties = table.find_all('tr')
@@ -37,25 +62,7 @@ def ind_page(sub_url, database):
                 count_vote = 0
                 if len(party.select('td')) > 1:
                     count_vote = int(party.select('td > span')[1].text)
-                vote_list.append([party_name.replace('\n', ''), count_vote, choice])
-
-    # Catching information of the motion and of the persons who drew or supported the motion
-    supporter_info_0 = loaded_page.find('h2')
-    general_info = loaded_page.find('div', class_="col-md-3").find_all('div', class_="link-list__text")
-    date = general_info[0].text
-    doc_number = general_info[1].text
-    state_doc = general_info[2].text
-    subject = loaded_page.find('h1', class_='section__title').text
-    subject = re.sub(' +', ' ', subject.replace('\n', ''))
-    page_title = loaded_page.title.text
-    char_supporters, name_supporters, party_supporters, personal_pages = [], [], [], []
-    while supporter_info_0.next_sibling.next_sibling is not None:
-        supporter_info_0 = supporter_info_0.next_sibling.next_sibling
-        char_supporters.append(supporter_info_0.select('div > strong')[0].text)
-        supporter_info_1 = supporter_info_0.select('div > a')
-        name_supporters.append(supporter_info_1[0].text)
-        personal_pages.append('https://www.tweedekamer.nl' + supporter_info_1[0]['href'])
-        party_supporters.append(supporter_info_1[1].text)
+                vote_table = vote_table.append({'motie_id': doc_number, 'party_name': party_name.replace('\n', ''), 'vote_count': count_vote, 'vote': choice}, ignore_index=True)
 
     # Reading the motion from the PDF. PDF is temporarily downloaded and only the text of the motion is scraped
     sub_url_pdf = loaded_page('a', class_='button ___rounded ___download')[0]['href']
@@ -63,7 +70,7 @@ def ind_page(sub_url, database):
         pdf_url = 'https://www.tweedekamer.nl/' + sub_url_pdf
         reader = PyPDF2.PdfFileReader(wget.download(pdf_url, 'downloaded_motie.pdf'))
         pdf_text = reader.getPage(0).extractText()
-        t_begin = pdf_text.find('De Kamer,')
+        t_begin = pdf_text.find('De Kamer')
         ending_note = 'en gaat over tot de orde van de dag.'
         t_end = pdf_text.find(ending_note)
         motion_text = pdf_text[t_begin:t_end] + ending_note
@@ -72,16 +79,22 @@ def ind_page(sub_url, database):
     else:
         motion_text = 'Het document is geen PDF-formaat'
 
-    database = database.append(
-        {"Subject": subject, 'Date': date, 'Names_Supporters': name_supporters, 'char_supporters': char_supporters,
-         'Parties': party_supporters, 'Vote': vote_list, 'Text': motion_text, 'Title': page_title,
-         'Document_Number': doc_number, 'State_Document': state_doc, 'Personal_Info_Page': personal_pages}, ignore_index=True)
-    return database
+    motie_table = motie_table.append(
+        {'motie_id': doc_number, 'Subject': subject, 'Date': date, 'Text': motion_text, 'Title': page_title, 'State_Document': state_doc}, ignore_index=True)
+    return motie_table, indieners_table, vote_table
 
 # By defining the range (which will eventually account for every list page), the scraping can begin.
-def run():
-    database = pd.read_csv('Database.csv')
-    for i in range(1,7):
+def run(begin_page, end_page=None):
+    end_page = begin_page + 1 if end_page == None else end_page
+    # check if tables exist
+
+    if os.path.isfile('motie_table.csv'):
+        motie_table, indieners_table, vote_table  = pd.read_csv('motie_table.csv'), pd.read_csv('indieners_table.csv'), pd.read_csv('vote_table.csv')
+    else:
+        motie_table, indieners_table, vote_table  = create_tables()
+
+    # loop trough the range set of index pages on tweedekamer.nl/kamerstukken/moties
+    for i in tqdm(range(begin_page, end_page)):
         print('This is page {}'.format(i))
         url = 'https://www.tweedekamer.nl/kamerstukken/moties?qry=*&fld_prl_kamerstuk=Moties&fld_tk_categorie=kamerstukken&srt=date%3Adesc%3Adate&page='+str(i)
         rall = requests.get(url)
@@ -89,6 +102,10 @@ def run():
         soup = BeautifulSoup(r,"lxml")
         for x in soup.select('h3 > a'):
             sub_url = x['href']
-            database = ind_page(sub_url, database)
-    database.to_csv('Database.csv', index=False)
-    return print('\n ready steady')
+            motie_table, indieners_table, vote_table = ind_page(sub_url, motie_table, indieners_table, vote_table)
+        # save at the end of each index page
+        motie_table.to_csv('motie_table.csv', index=False), indieners_table.to_csv('indieners_table.csv', index=False), vote_table.to_csv('vote_table.csv', index=False)
+    return
+
+
+run(10)
