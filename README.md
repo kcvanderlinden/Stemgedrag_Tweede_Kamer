@@ -32,6 +32,7 @@ $ python
 
 De output als de drie .csv bestanden worden opgeslagen in de projectmap.
 
+## Variabelen
 De volgende variabelen worden geïndexeerd met dit script.
 In ```motie_table.csv```:
 1. motie_id (uniek voor elke motie en gegenereerd door de website van de Tweede Kamer zelf)
