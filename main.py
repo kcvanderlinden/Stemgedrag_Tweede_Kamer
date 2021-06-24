@@ -122,5 +122,3 @@ def run(begin_page, end_page=None):
         # save at the end of each index page
         motie_table.to_csv('motie_table.csv', index=False), indieners_table.to_csv('indieners_table.csv', index=False), vote_table.to_csv('vote_table.csv', index=False), activities_table.to_csv('activities_table.csv', index=False)
     return
-
-run(12)
