@@ -21,10 +21,14 @@ def create_tables():
     cols = ['motie_id', 'party_name', 'vote_count', 'vote']
     vote_table = pd.DataFrame(columns=cols)
     vote_table.to_csv('vote_table.csv', index=False)
-    return motie_table, indieners_table, vote_table
+
+    cols = ['motie_id', 'activities']
+    activities_table = pd.DataFrame(columns=cols)
+    activities_table.to_csv('activities_table.csv', index=False)
+    return motie_table, indieners_table, vote_table, activities_table
 
 # This is initially where the pages are being loaded.
-def ind_page(sub_url, motie_table, indieners_table, vote_table):
+def ind_page(sub_url, motie_table, indieners_table, vote_table, activities_table):
     url = 'https://www.tweedekamer.nl' + sub_url
     rall = requests.get(url)
     r = rall.content
@@ -35,9 +39,12 @@ def ind_page(sub_url, motie_table, indieners_table, vote_table):
     general_info = loaded_page.find('div', class_="col-md-3").find_all('div', class_="link-list__text")
     date = general_info[0].text
     doc_number = general_info[1].text
+
+    # if the motion, identified by the doc_number, is already in the table, then nothing is appended and the function is ended.
     if doc_number in motie_table.motie_id.values:
-        None
-        return motie_table, indieners_table, vote_table
+
+        return motie_table, indieners_table, vote_table, activities_table
+
     state_doc = general_info[2].text
     subject = loaded_page.find('h1', class_='section__title').text
     subject = re.sub(' +', ' ', subject.replace('\n', ''))
@@ -79,9 +86,18 @@ def ind_page(sub_url, motie_table, indieners_table, vote_table):
     else:
         motion_text = 'Het document is geen PDF-formaat'
 
+    # Catching de voting and debate activities that are linked to this debate
+    if loaded_page.find('h2', string="Activiteiten"):
+        cards = loaded_page.find('h2', string="Activiteiten").parent.find_all('a', class_='card ___small')
+        if len(cards) > 0:
+            for x in cards:
+                activities_url = 'https://www.tweedekamer.nl{}'.format(x['href'])
+                activities_table = activities_table.append({'motie_id': doc_number, 'activities': activities_url},
+                                                           ignore_index=True)
+
     motie_table = motie_table.append(
         {'motie_id': doc_number, 'Subject': subject, 'Date': date, 'Text': motion_text, 'Title': page_title, 'State_Document': state_doc}, ignore_index=True)
-    return motie_table, indieners_table, vote_table
+    return motie_table, indieners_table, vote_table, activities_table
 
 # By defining the range (which will eventually account for every list page), the scraping can begin.
 def run(begin_page, end_page=None):
@@ -89,9 +105,9 @@ def run(begin_page, end_page=None):
     # check if tables exist
 
     if os.path.isfile('motie_table.csv'):
-        motie_table, indieners_table, vote_table  = pd.read_csv('motie_table.csv'), pd.read_csv('indieners_table.csv'), pd.read_csv('vote_table.csv')
+        motie_table, indieners_table, vote_table,activities_table  = pd.read_csv('motie_table.csv'), pd.read_csv('indieners_table.csv'), pd.read_csv('vote_table.csv'), pd.read_csv('activities_table.csv')
     else:
-        motie_table, indieners_table, vote_table  = create_tables()
+        motie_table, indieners_table, vote_table, activities_table  = create_tables()
 
     # loop trough the range set of index pages on tweedekamer.nl/kamerstukken/moties
     for i in tqdm(range(begin_page, end_page)):
@@ -102,10 +118,9 @@ def run(begin_page, end_page=None):
         soup = BeautifulSoup(r,"lxml")
         for x in soup.select('h3 > a'):
             sub_url = x['href']
-            motie_table, indieners_table, vote_table = ind_page(sub_url, motie_table, indieners_table, vote_table)
+            motie_table, indieners_table, vote_table, activities_table = ind_page(sub_url, motie_table, indieners_table, vote_table, activities_table)
         # save at the end of each index page
-        motie_table.to_csv('motie_table.csv', index=False), indieners_table.to_csv('indieners_table.csv', index=False), vote_table.to_csv('vote_table.csv', index=False)
+        motie_table.to_csv('motie_table.csv', index=False), indieners_table.to_csv('indieners_table.csv', index=False), vote_table.to_csv('vote_table.csv', index=False), activities_table.to_csv('activities_table.csv', index=False)
     return
 
-
-run(10)
+run(12)
