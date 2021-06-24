@@ -2,10 +2,11 @@
 ## Scraping votes on motions in the Dutch Parliament
 Because this code is specifically written on scraping motions in the Dutch Parliament, I will continue my story in DUtch, but if you're intreseted in my work, just contact me. 
 
-Met de code van dit project wordt de gebruiker in staat gesteld om (alle) moties uit de Tweede Kamer te indexeren in 3 tabellen: 
+Met de code van dit project wordt de gebruiker in staat gesteld om (alle) moties uit de Tweede Kamer te indexeren in 4 tabellen: 
 1. eentje met de informatie over de motie zelf ```motie_table.csv```, 
-2. eentje over de informatie van de indieners van de motie ```indieners_table.csv``` en 
-3. eentje met de informatie over de stemuitslag ```vote_table.csv```.
+2. eentje over de informatie van de indieners van de motie ```indieners_table.csv```,
+3. eentje met de informatie over de stemuitslag ```vote_table.csv``` en
+4. eentje met de verwijzingen naar het debat e.d. waar de motie is ingediend ```actviteiten_table.csv```.
 
 Hierdoor wordt de informatie uit de Tweede Kamer met betrekking tot de moties toegankelijk gemaakt voor onderzoek. De code die je hier vindt is in staat om alle informatie van de individuele motie webpagina's te indexeren inclusief de motietekst zelf die in een PDF gevonden wordt op de webpagina van elke motie. Hierdoor kan er onderzoek gedaan worden naar stemgedrag van individuele leden van de Tweede Kamer of gehele partijen. Dit kan op basis van de titels van de moties, maar dus ook op basis van de inhoud van de moties. Een waardevolle toevoeging voor dit project zou zijn om automatisch thema's aan de moties te kunnen voegen op basis van de motie tekst.
 
@@ -43,14 +44,18 @@ In ```motie_table.csv```:
 6. State_Document (document status)
 
 In ```indieners_table.csv```:
-1. motie_id ()
+1. motie_id (uniek voor elke motie en gegenereerd door de website van de Tweede Kamer zelf)
 2. name_submitter (naam motie indiener)
 3. submitter_type (indiener, ondertekenaar, mede-indiener, etc.)
 4. party_submitter (politieke partij van indiener)
 5. personal_page (url naar de persoonlijke pagina van de indiener)
 
 In ```vote_table.csv```:
-1. motie_id ()
+1. motie_id (uniek voor elke motie en gegenereerd door de website van de Tweede Kamer zelf)
 2. party_name (Naam van politieke partij)
 3. vote_count (hoeveelheid van stemmen)
 4. vote (voor, tegen of afwezig)
+
+In ```actviteiten_table.csv```:
+1. motie_id (uniek voor elke motie en gegenereerd door de website van de Tweede Kamer zelf)
+2. activities (verwijzing d.m.v. url naar het debat of stemming waar de motie deel van is)
