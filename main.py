@@ -7,6 +7,9 @@ import wget
 import PyPDF2
 import os
 from tqdm import tqdm
+import ssl
+
+ssl._create_default_https_context = ssl._create_unverified_context #included because of an SSL error on my machine
 
 # if not existent, create empty tables
 def create_tables():
@@ -51,11 +54,8 @@ def ind_page(sub_url, motie_table, indieners_table, vote_table, activities_table
     page_title = loaded_page.title.text
     while supporter_info_0.next_sibling.next_sibling is not None:
         supporter_info_0 = supporter_info_0.next_sibling.next_sibling
-        supporter_info_1 = supporter_info_0.select('div > a')
-        indieners_table = indieners_table.append(
-            {'motie_id': doc_number, 'name_submitter': supporter_info_1[0].text, 'submitter_type': supporter_info_0.select('div > strong')[0].text, 'party_submitter': supporter_info_1[1].text, 'personal_page': 'https://www.tweedekamer.nl' + supporter_info_1[0]['href']},
-            ignore_index=True)
-
+        raw_individual_info = supporter_info_0.find_all(text=True)
+        indieners_table = indieners_table.append({'motie_id': doc_number, 'name_submitter': raw_individual_info[5], 'submitter_type': raw_individual_info[4], 'party_submitter': raw_individual_info[7], 'personal_page': 'https://www.tweedekamer.nl{}'.format(supporter_info_0.find('a')['href'])}, ignore_index=True)
     # Catching the Vote (if the vote has been casted)
     if loaded_page.find('table', class_='vote-result-table') is None:
         vote_list = 'De stemming is niet bekend.'
@@ -75,6 +75,7 @@ def ind_page(sub_url, motie_table, indieners_table, vote_table, activities_table
     sub_url_pdf = loaded_page('a', class_='button ___rounded ___download')[0]['href']
     if sub_url_pdf[-3::] == 'pdf':
         pdf_url = 'https://www.tweedekamer.nl/' + sub_url_pdf
+        ssl._create_default_https_context = ssl._create_unverified_context #included because of an SSL error on my machine
         reader = PyPDF2.PdfFileReader(wget.download(pdf_url, 'downloaded_motie.pdf'))
         pdf_text = reader.getPage(0).extractText()
         t_begin = pdf_text.find('De Kamer')
@@ -95,8 +96,7 @@ def ind_page(sub_url, motie_table, indieners_table, vote_table, activities_table
                 activities_table = activities_table.append({'motie_id': doc_number, 'activities': activities_url},
                                                            ignore_index=True)
 
-    motie_table = motie_table.append(
-        {'motie_id': doc_number, 'Subject': subject, 'Date': date, 'Text': motion_text, 'Title': page_title, 'State_Document': state_doc}, ignore_index=True)
+    motie_table = motie_table.append({'motie_id': doc_number, 'Subject': subject, 'Date': date, 'Text': motion_text, 'Title': page_title, 'State_Document': state_doc}, ignore_index=True)
     return motie_table, indieners_table, vote_table, activities_table
 
 # By defining the range (which will eventually account for every list page), the scraping can begin.
