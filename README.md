@@ -1,6 +1,6 @@
 # Tweede Kamer moties indexeren
 ## Scraping votes on motions in the Dutch Parliament
-Because this code is specifically written on scraping motions in the Dutch Parliament, I will continue my story in DUtch, but if you're intreseted in my work, just contact me. 
+Because this code is specifically written on scraping motions in the Dutch Parliament, I will continue my story in Dutch, but if you're interested in my work, just contact me. 
 
 Met de code van dit project wordt de gebruiker in staat gesteld om (alle) moties uit de Tweede Kamer te indexeren in 4 tabellen: 
 1. eentje met de informatie over de motie zelf ```motie_table.csv```, 
@@ -8,18 +8,18 @@ Met de code van dit project wordt de gebruiker in staat gesteld om (alle) moties
 3. eentje met de informatie over de stemuitslag ```vote_table.csv``` en
 4. eentje met de verwijzingen naar het debat e.d. waar de motie is ingediend ```actviteiten_table.csv```.
 
-Hierdoor wordt de informatie uit de Tweede Kamer met betrekking tot de moties toegankelijk gemaakt voor onderzoek. De code die je hier vindt is in staat om alle informatie van de individuele motie webpagina's te indexeren inclusief de motietekst zelf die in een PDF gevonden wordt op de webpagina van elke motie. Hierdoor kan er onderzoek gedaan worden naar stemgedrag van individuele leden van de Tweede Kamer of gehele partijen. Dit kan op basis van de titels van de moties, maar dus ook op basis van de inhoud van de moties. Een waardevolle toevoeging voor dit project zou zijn om automatisch thema's aan de moties te kunnen voegen op basis van de motie tekst.
+Hierdoor wordt de informatie uit de Tweede Kamer met betrekking tot de moties toegankelijk gemaakt voor onderzoek. De code die je hier vindt is in staat om alle informatie van de individuele motie webpagina's te indexeren inclusief de motie tekst zelf die in een PDF gevonden wordt op de webpagina van elke motie. Hierdoor kan er onderzoek gedaan worden naar stemgedrag van individuele leden van de Tweede Kamer of gehele partijen. Dit kan op basis van de titels van de moties, maar dus ook op basis van de inhoud van de moties. Een waardevolle toevoeging voor dit project zou zijn om automatisch thema's aan de moties te kunnen voegen op basis van de motie tekst.
 
-Dit project is geschreven in Python, omdat het veel mogelijkheden biedt aan de programmeur. Python is van extra waarde in mijn optiek, omdat veel bestuurskundige, politicologen en andere studenten of leraren van sociale studies weinig ervaring hebben met programmeertalen. Python is beginnersvriendelijk en de output van dit script makkelijk te gebruiken in welbekende statistiekprogramma's. Daarnaast leent de output van dit script zich ook om geïmporteerd te worden in een database omgeving zoals met MySQL. Hierdoor kunnen de verschillende tabellen die als output volgen uit dit script gekoppeld worden en kunnen er meer geavanceerde zoekopdrachten uitgevoerd worden over de datasets.
+Dit project is geschreven in Python, omdat het veel mogelijkheden biedt aan de programmeur. Python is van extra waarde in mijn optiek, omdat veel bestuurskundige, politicologen en andere studenten of leraren van sociale studies weinig ervaring hebben met programmeertalen. Python is beginners vriendelijk en de output van dit script makkelijk te gebruiken in welbekende statistiekprogramma's. Daarnaast leent de output van dit script zich ook om geïmporteerd te worden in een database omgeving zoals met MySQL. Hierdoor kunnen de verschillende tabellen die als output volgen uit dit script gekoppeld worden en kunnen er meer geavanceerde zoekopdrachten uitgevoerd worden over de datasets.
 
-Voor dit python script zijn de modulen nodig die gevonden worden in ```requirements.txt```. Deze kunnen geïnstalleerd worden met het volgende commando uit te voeren in de project map met een terminal.
+Voor dit python script zijn de module nodig die gevonden worden in ```requirements.txt```. Deze kunnen geïnstalleerd worden met het volgende commando uit te voeren in de project map met een terminal.
 ```bash
 $ pip install -r requirements.txt
 ```
 
 Dit vereist wel dat [Python](https://www.python.org/downloads/) zelf is geïnstalleerd op het systeem. Vergeet bij de installatie niet het vakje aan te vinken om Python toe te voegen aan PATH.
 
-om het script uit te voeren, moet een terminal geopend worden in de project map en de volgende commando's uitgevoerd worden:
+om het script uit te voeren, moet een terminal geopend worden in de projectmap en de volgende commando's uitgevoerd worden:
 ```bash
 $ python
 >>> from main import run
